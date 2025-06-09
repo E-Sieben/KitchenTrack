@@ -65,14 +65,23 @@ def execute_sql(sql: str):
 
 
 @app.post("/meal/{dish_name}/")
-def post_meal(dish_name: str, calories: int = None, plate_type: str = "plate", plates: int = 0):
+def post_meal(dish_name: str,
+              calories: int = None,
+              plate_type: str = "plate",
+              plates: int = 0,
+              kcal_per_hundert: int = 0,
+              grams_eaten: int = 0):
+    """
+        Calories in kcal
+        """
     dish_name = dish_name.lower().replace(" ", "_")
-    """
-    Calories in kcal
-    """
+    if not calories:
+        calories = grams_eaten * kcal_per_hundert
+
+
     execute_sql(f"""
             INSERT INTO meals (dish, calories , plate_types, plate)
-            VALUES ('{dish_name}', '{calories}','{plate_type}', '{plates}');
+            VALUES ('{dish_name}', '{int(calories)}','{plate_type}', '{plates}');
             """)
 
 
