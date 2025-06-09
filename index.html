@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Entry Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="max-w-lg w-full bg-white p-8 rounded-xl shadow-2xl border border-gray-200">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Enter Your Meal</h1>
+
+        <form id="mealForm" class="space-y-4">
+            <div>
+                <label for="dish_name" class="block text-sm font-semibold text-gray-700 mb-1">Dish Name:</label>
+                <input type="text" id="dish_name" name="dish_name" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+            </div>
+
+            <button type="button" id="autocompleteBtn"
+                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition ease-in-out duration-150 shadow-md">
+                Auto-Complete Dish
+            </button>
+
+            <div>
+                <label for="calories" class="block text-sm font-semibold text-gray-700 mb-1">Calories (kcal - optional):</label>
+                <input type="number" id="calories" name="calories"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+            </div>
+
+            <div>
+                <label for="plate_type" class="block text-sm font-semibold text-gray-700 mb-1">Plate Type (e.g., bowl, plate):</label>
+                <input type="text" id="plate_type" name="plate_type" value="plate"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+            </div>
+
+            <div>
+                <label for="plates" class="block text-sm font-semibold text-gray-700 mb-1">Number of Plates:</label>
+                <input type="number" id="plates" name="plates" value="0"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+            </div>
+
+            <div>
+                <label for="kcal_per_hundert" class="block text-sm font-semibold text-gray-700 mb-1">Kcal per 100g (optional, for auto-calculation):</label>
+                <input type="number" id="kcal_per_hundert" name="kcal_per_hundert" value="0"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+            </div>
+
+            <div>
+                <label for="grams_eaten" class="block text-sm font-semibold text-gray-700 mb-1">Grams Eaten (optional, for auto-calculation):</label>
+                <input type="number" id="grams_eaten" name="grams_eaten" value="0"
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition ease-in-out duration-150 shadow-md">
+                Add Meal
+            </button>
+        </form>
+
+        <div id="messageArea" class="mt-6 p-4 text-center rounded-lg hidden">
+            </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mealForm = document.getElementById('mealForm');
+            const autocompleteBtn = document.getElementById('autocompleteBtn');
+            const dishNameInput = document.getElementById('dish_name');
+            const caloriesInput = document.getElementById('calories');
+            const plateTypeInput = document.getElementById('plate_type');
+            const messageArea = document.getElementById('messageArea');
+
+            // Define your API base URL
+            const API_BASE_URL = 'http://192.168.0.9:8000';
+
+            // Function to display messages to the user
+            function showMessage(message, type = 'success') {
+                messageArea.textContent = message;
+                messageArea.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800');
+                if (type === 'success') {
+                    messageArea.classList.add('bg-green-100', 'text-green-800');
+                } else if (type === 'error') {
+                    messageArea.classList.add('bg-red-100', 'text-red-800');
+                } else { // info
+                    messageArea.classList.add('bg-blue-100', 'text-blue-800');
+                }
+                setTimeout(() => {
+                    messageArea.classList.add('hidden');
+                }, 5000); // Hide message after 5 seconds
+            }
+
+            // Event listener for the Auto-Complete button
+            autocompleteBtn.addEventListener('click', async () => {
+                const dishName = dishNameInput.value.trim();
+                if (!dishName) {
+                    showMessage('Please enter a dish name to auto-complete.', 'error');
+                    return;
+                }
+
+                showMessage('Fetching data...', 'info');
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/meal/${encodeURIComponent(dishName)}/`);
+                    const data = await response.json(); // This will be your JSON object: {"dish": "...", "calories": ..., "plate_types": "..."}
+
+                    if (response.ok) {
+                        // Check if data is a valid object and not empty
+                        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+                            // Corrected: Use object destructuring to get properties by name
+                            const { dish, calories, plate_types } = data;
+
+                            caloriesInput.value = calories || '';
+                            plateTypeInput.value = plate_types || 'plate'; // Use plate_types from the response
+                            showMessage(`Auto-complete successful for "${dish}".`, 'success');
+                        } else {
+                            // Clear fields if no data is found for a new dish or response was empty
+                            caloriesInput.value = '';
+                            plateTypeInput.value = 'plate'; // Reset to default
+                            showMessage(`No previous data found for "${dishName}". Please fill manually.`, 'info');
+                        }
+                    } else {
+                        caloriesInput.value = ''; // Clear fields on error
+                        plateTypeInput.value = 'plate'; // Reset to default
+                        showMessage(`Error fetching data: ${data.detail || response.statusText}.`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error during auto-complete fetch:', error);
+                    showMessage('An error occurred during auto-completion. Please check your network or API URL.', 'error');
+                }
+            });
+
+            // Event listener for form submission
+            mealForm.addEventListener('submit', async (event) => {
+                event.preventDefault(); // Prevent default form submission
+
+                const dishName = dishNameInput.value.trim();
+                if (!dishName) {
+                    showMessage('Dish name is required.', 'error');
+                    return;
+                }
+
+                const formData = {
+                    calories: caloriesInput.value ? parseInt(caloriesInput.value) : null,
+                    plate_type: plateTypeInput.value,
+                    plates: parseInt(document.getElementById('plates').value || '0'),
+                    kcal_per_hundert: parseInt(document.getElementById('kcal_per_hundert').value || '0'),
+                    grams_eaten: parseInt(document.getElementById('grams_eaten').value || '0')
+                };
+
+                // Remove calories if it's null or 0, so backend can calculate if grams_eaten and kcal_per_hundert are provided.
+                if (formData.calories === null || formData.calories === 0) {
+                    delete formData.calories;
+                }
+
+                showMessage('Submitting meal data...', 'info');
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/meal/${encodeURIComponent(dishName)}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        showMessage('Meal added successfully!', 'success');
+                        mealForm.reset(); // Clear the form
+                        plateTypeInput.value = 'plate'; // Ensure plate_type resets to default
+                        document.getElementById('plates').value = '0';
+                        document.getElementById('kcal_per_hundert').value = '0';
+                        document.getElementById('grams_eaten').value = '0';
+                    } else {
+                        const errorData = await response.json();
+                        showMessage(`Failed to add meal: ${errorData.detail || response.statusText}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error during form submission:', error);
+                    showMessage('An error occurred while adding the meal. Please check your network or API URL.', 'error');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

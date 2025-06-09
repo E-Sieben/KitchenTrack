@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi import HTTPException
 from pymysql import cursors, connect, Error as mysqlError
-
+from fastapi.responses import HTMLResponse
 app = FastAPI()
 
 
@@ -107,3 +107,15 @@ def get_dish_data(dish_name: str):
     else:
         HTTPException(404, f"No meals titled {dish_name}")
         return False
+
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    try:
+        with open("index.html", "r") as f:
+            html_content = f.read()
+        return HTMLResponse(content=html_content, status_code=200)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="index.html not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading index.html: {e}")
