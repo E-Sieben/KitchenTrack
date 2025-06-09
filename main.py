@@ -1,6 +1,5 @@
-from fastapi import HTTPException
-
 from fastapi import FastAPI
+from fastapi import HTTPException
 from pymysql import cursors, connect, Error as mysqlError
 
 app = FastAPI()
@@ -81,13 +80,17 @@ def post_meal(dish_name: str, calories: int = None, plate_type: str = "plate", p
 def get_dish_data(dish_name: str):
     dish_name = dish_name.lower().replace(" ", "_")
     out = execute_sql(f"""
-    SELECT dish, calories, plate_types
-    FROM meals
-    WHERE dish = '{dish_name}'
-    GROUP BY dish, calories, plate_types
-    ORDER BY COUNT(*) DESC
-    LIMIT 1;
-    """)
+                SELECT dish, calories, plate_types
+                FROM meals
+                WHERE dish = '{dish_name}'
+                  AND calories IS NOT NULL
+                  AND calories > 0
+                  AND plate_types IS NOT NULL
+                  AND plate_types != ''
+                GROUP BY dish, calories, plate_types
+                ORDER BY COUNT(*) DESC
+                LIMIT 1;
+                """)
     data = out.fetchall()
     print(data)
     if data:
